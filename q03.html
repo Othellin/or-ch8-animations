@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第3題 天然氣供應 — 動畫解題</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg:#0a0e1a;--card:#131a2e;--border:#1e2d4a;--text:#e2e8f0;--dim:#5a6a8a;--accent:#60a5fa;--green:#34d399;--yellow:#fbbf24;--pink:#f472b6;--orange:#fb923c;--purple:#a78bfa;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);}
+.top-bar h1{font-size:16px;color:var(--accent);font-weight:700;}
+.pills{display:flex;gap:6px;}.pill{width:26px;height:6px;border-radius:3px;background:var(--border);transition:all .4s;}.pill.on{background:var(--accent);width:42px;}.pill.done{background:var(--green);}
+.main{flex:1;display:grid;grid-template-columns:50% 50%;overflow:hidden;}
+.svg-box{display:flex;align-items:center;justify-content:center;padding:20px;}
+.txt-box{padding:28px 24px;overflow-y:auto;border-left:1px solid var(--border);}
+.controls{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px;background:var(--card);border-top:1px solid var(--border);}
+.btn{font-family:'Noto Sans TC',sans-serif;font-size:15px;font-weight:600;padding:10px 32px;border:none;border-radius:8px;cursor:pointer;transition:all .2s;}
+.bp{background:var(--border);color:var(--text);}.bp:hover:not(:disabled){background:#2a3a5c;}
+.bn{background:var(--accent);color:#0a0e1a;}.bn:hover:not(:disabled){background:#93c5fd;}
+.btn:disabled{opacity:.25;cursor:not-allowed;}
+.sn{color:var(--dim);font-size:14px;font-weight:500;min-width:60px;text-align:center;}
+@keyframes nodeIn{0%{opacity:0;transform:scale(.3)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+@keyframes drawArc{to{stroke-dashoffset:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseGlow{0%,100%{filter:drop-shadow(0 0 4px var(--green));stroke-width:4}50%{filter:drop-shadow(0 0 12px var(--green));stroke-width:5}}
+@keyframes typeLine{to{opacity:1;transform:translateX(0)}}
+@keyframes boxPop{0%{opacity:0;transform:scale(.95)}70%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+.tl{opacity:0;transform:translateX(-12px);}.tl.on{animation:typeLine .4s ease forwards;}
+.st{font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.ex{font-size:15px;line-height:1.9;}.ex strong{color:var(--accent);}.ex .pk{color:var(--pink);font-weight:700;}.ex .gn{color:var(--green);font-weight:700;}.ex .yw{color:var(--yellow);font-weight:700;}.ex .pp{color:var(--purple);font-weight:700;}
+.mb{font-size:14px;background:rgba(96,165,250,.06);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin:12px 0;line-height:2.4;overflow-x:auto;}
+.rb{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:16px;margin:12px 0;opacity:0;transform:scale(.95);}.rb.on{animation:boxPop .5s ease forwards;}
+.rb2{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.3);border-radius:10px;padding:16px;margin:12px 0;opacity:0;transform:scale(.95);}.rb2.on{animation:boxPop .5s ease forwards;}
+.ta{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;}
+.ta th{background:rgba(96,165,250,.12);color:var(--accent);font-weight:600;padding:8px 12px;border:1px solid var(--border);}
+.ta td{padding:8px 12px;border:1px solid var(--border);text-align:center;}
+.ta .gc{background:rgba(52,211,153,.12);color:var(--green);font-weight:700;}
+.katex{font-size:1em !important;}
+</style>
+</head>
+<body>
+<div class="top-bar"><h1>CH8 第3題｜天然氣供應（運輸問題）</h1><div class="pills" id="pills"></div></div>
+<div class="main"><div class="svg-box"><svg id="S" viewBox="0 0 580 340" width="100%"></svg></div><div class="txt-box" id="T"></div></div>
+<div class="controls"><button class="btn bp" id="bP" onclick="go(-1)">← 上一步</button><span class="sn" id="sN"></span><button class="btn bn" id="bN" onclick="go(1)">下一步 →</button></div>
+<script>
+const origins=[
+  {label:"南方天然氣",short:"S",x:80,y:100,supply:500},
+  {label:"西北天然氣",short:"NW",x:80,y:250,supply:400}
+];
+const dests=[
+  {label:"漢彌爾頓",short:"H",x:480,y:55,demand:400},
+  {label:"巴特勒",short:"B",x:480,y:170,demand:200},
+  {label:"克拉蒙",short:"C",x:480,y:285,demand:300}
+];
+const arcs=[[0,0,10],[0,1,20],[0,2,15],[1,0,12],[1,1,15],[1,2,18]];
+const OPT=[[0,0,200],[0,2,300],[1,0,200],[1,1,200]];
+const OPT_D=[[0,0,300],[0,2,300],[1,0,100],[1,1,300]]; // part d
+function isOpt(oi,di,opt){return opt.some(o=>o[0]===oi&&o[1]===di);}
+function optAmt(oi,di,opt){const r=opt.find(o=>o[0]===oi&&o[1]===di);return r?r[2]:0;}
+
+const svg=document.getElementById("S");
+function ns(t){return document.createElementNS("http://www.w3.org/2000/svg",t);}
+
+function draw(mode,optData){
+  svg.innerHTML="";
+  const isAnim=mode==="animate",isOp=mode==="optimal";
+  const opt=optData||OPT;
+  arcs.forEach(([oi,di,c],idx)=>{
+    const o=origins[oi],d=dests[di],g=ns("g");
+    const hp=isOp&&isOpt(oi,di,opt),dim=isOp&&!hp;
+    const line=ns("line");
+    line.setAttribute("x1",o.x+55);line.setAttribute("y1",o.y);line.setAttribute("x2",d.x-45);line.setAttribute("y2",d.y);line.setAttribute("fill","none");
+    if(hp){line.setAttribute("stroke","var(--green)");line.setAttribute("stroke-width","4");line.style.animation="pulseGlow 1.5s ease infinite";}
+    else{line.setAttribute("stroke","#3a4a6c");line.setAttribute("stroke-width","2");}
+    if(dim)line.setAttribute("opacity","0.15");
+    if(isAnim){line.setAttribute("stroke-dasharray","1000");line.setAttribute("stroke-dashoffset","1000");line.style.animation=`drawArc 0.6s ${idx*120}ms ease forwards`;}
+    g.appendChild(line);
+    const mx=(o.x+55+d.x-45)/2,my=(o.y+d.y)/2,offY=[-12,0,12][di]+(oi===1?5:-5);
+    const ct=ns("text");ct.setAttribute("x",mx);ct.setAttribute("y",my+offY);ct.setAttribute("text-anchor","middle");ct.setAttribute("dominant-baseline","central");
+    ct.setAttribute("font-family","'JetBrains Mono',monospace");ct.setAttribute("font-size",hp?"14":"12");ct.setAttribute("font-weight",hp?"700":"400");
+    ct.setAttribute("fill",hp?"var(--green)":"#8892a8");
+    if(dim)ct.setAttribute("opacity","0.15");
+    if(hp){const a=optAmt(oi,di,opt);ct.textContent=`$${c}k × ${a} = $${c*a}k`;}else{ct.textContent=`$${c}k`;}
+    if(isAnim){ct.setAttribute("opacity","0");ct.style.animation=`fadeUp 0.4s ${idx*120+400}ms ease forwards`;}
+    g.appendChild(ct);
+    if(hp){
+      const dot=ns("circle");dot.setAttribute("r","4");dot.setAttribute("fill","var(--green)");dot.style.filter="drop-shadow(0 0 5px var(--green))";
+      const am=ns("animateMotion");am.setAttribute("dur","2s");am.setAttribute("repeatCount","indefinite");
+      am.setAttribute("path",`M${o.x+55},${o.y} L${d.x-45},${d.y}`);dot.appendChild(am);g.appendChild(dot);
+    }
+    svg.appendChild(g);
+  });
+  origins.forEach((o,i)=>{
+    const g=ns("g"),rect=ns("rect");rect.setAttribute("x",o.x-55);rect.setAttribute("y",o.y-22);rect.setAttribute("width",110);rect.setAttribute("height",44);rect.setAttribute("rx",8);
+    rect.setAttribute("fill","var(--accent)");rect.setAttribute("opacity","0.9");g.appendChild(rect);
+    const t1=ns("text");t1.setAttribute("x",o.x);t1.setAttribute("y",o.y-4);t1.setAttribute("text-anchor","middle");t1.setAttribute("fill","white");t1.setAttribute("font-size","12");t1.setAttribute("font-weight","700");t1.setAttribute("font-family","'Noto Sans TC',sans-serif");t1.textContent=o.label;g.appendChild(t1);
+    const t2=ns("text");t2.setAttribute("x",o.x);t2.setAttribute("y",o.y+14);t2.setAttribute("text-anchor","middle");t2.setAttribute("fill","rgba(255,255,255,0.7)");t2.setAttribute("font-size","11");t2.setAttribute("font-family","'JetBrains Mono',monospace");t2.textContent=`供給=${o.supply}`;g.appendChild(t2);
+    if(isAnim){g.setAttribute("opacity","0");g.style.animation=`nodeIn 0.5s ${i*200}ms ease forwards`;}
+    svg.appendChild(g);
+  });
+  dests.forEach((d,i)=>{
+    const g=ns("g"),rect=ns("rect");rect.setAttribute("x",d.x-45);rect.setAttribute("y",d.y-22);rect.setAttribute("width",90);rect.setAttribute("height",44);rect.setAttribute("rx",8);
+    rect.setAttribute("fill","var(--orange)");rect.setAttribute("opacity","0.9");g.appendChild(rect);
+    const t1=ns("text");t1.setAttribute("x",d.x);t1.setAttribute("y",d.y-4);t1.setAttribute("text-anchor","middle");t1.setAttribute("fill","white");t1.setAttribute("font-size","12");t1.setAttribute("font-weight","700");t1.setAttribute("font-family","'Noto Sans TC',sans-serif");t1.textContent=d.label;g.appendChild(t1);
+    const dm=optData===OPT_D&&i===1?300:d.demand;
+    const t2=ns("text");t2.setAttribute("x",d.x);t2.setAttribute("y",d.y+14);t2.setAttribute("text-anchor","middle");t2.setAttribute("fill","rgba(255,255,255,0.7)");t2.setAttribute("font-size","11");t2.setAttribute("font-family","'JetBrains Mono',monospace");t2.textContent=`需求=${dm}`;g.appendChild(t2);
+    if(isAnim){g.setAttribute("opacity","0");g.style.animation=`nodeIn 0.5s ${(i+2)*200}ms ease forwards`;}
+    svg.appendChild(g);
+  });
+}
+
+function typed(el,lines,base=0,gap=300){lines.forEach((h,i)=>{const d=document.createElement("div");d.classList.add("tl");d.innerHTML=h;el.appendChild(d);setTimeout(()=>{d.classList.add("on");rl(d);},base+i*gap);});}
+function rl(el){if(typeof renderMathInElement==="function")renderMathInElement(el,{delimiters:[{left:"$$",right:"$$",display:true},{left:"\\(",right:"\\)",display:false}],throwOnError:false});}
+
+const STEPS=[
+  // 0: 題目 (a)
+  {svg:()=>draw("animate"),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="(a) STEP 1 — 題目與網路圖";el.appendChild(t);
+    typed(el,[
+      `<p class="ex"><strong>三郡公用事業公司</strong>從兩家上游公司採購天然氣，供應三個郡。</p>`,
+      `<p class="ex" style="margin-top:8px"><span style="color:var(--accent)">■</span> 供應商：南方天然氣（500）、西北天然氣（400）</p>`,
+      `<p class="ex"><span style="color:var(--orange)">■</span> 需求：漢彌爾頓（400）、巴特勒（200）、克拉蒙（300）</p>`,
+      `<p class="ex" style="margin-top:8px">弧上數字 = 每單位供氣成本（千美元）</p>`,
+      `<p class="ex">總供給 = 900 ＞ 總需求 = 900 → <span class="gn">供需平衡</span></p>`,
+    ],200,350);
+  }},
+  // 1: LP model (b)
+  {svg:()=>draw("static"),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="(b) STEP 2 — LP 模型";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">令 \\(x_{ij}\\) = 從供應商 \\(i\\) 到郡 \\(j\\) 的供氣量</p>`,
+      `<div class="mb"><p><strong>目標函數：</strong></p>
+$$\\min Z = 10x_{11} + 20x_{12} + 15x_{13} + 12x_{21} + 15x_{22} + 18x_{23}$$
+      </div>`,
+      `<div class="mb"><p><strong>供給限制式：</strong></p>
+        <p>\\(x_{11} + x_{12} + x_{13} \\leq 500\\)　（南方）</p>
+        <p>\\(x_{21} + x_{22} + x_{23} \\leq 400\\)　（西北）</p>
+        <br><p><strong>需求限制式：</strong></p>
+        <p>\\(x_{11} + x_{21} = 400\\)　（漢彌爾頓）</p>
+        <p>\\(x_{12} + x_{22} = 200\\)　（巴特勒）</p>
+        <p>\\(x_{13} + x_{23} = 300\\)　（克拉蒙）</p>
+        <br><p>\\(x_{ij} \\geq 0\\)</p>
+      </div>`,
+    ],200,400);
+  }},
+  // 2: 最佳解 (c)
+  {svg:()=>draw("optimal",OPT),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="(c) STEP 3 — 最佳解";el.appendChild(t);
+    typed(el,[
+      `<table class="ta"><tr><th>路線</th><th>供氣量</th><th>單位成本</th><th>小計(千$)</th></tr>
+       <tr><td>南方 → 漢彌爾頓</td><td class="gc">200</td><td>$10k</td><td class="gc">$2,000</td></tr>
+       <tr><td>南方 → 克拉蒙</td><td class="gc">300</td><td>$15k</td><td class="gc">$4,500</td></tr>
+       <tr><td>西北 → 漢彌爾頓</td><td class="gc">200</td><td>$12k</td><td class="gc">$2,400</td></tr>
+       <tr><td>西北 → 巴特勒</td><td class="gc">200</td><td>$15k</td><td class="gc">$3,000</td></tr>
+       <tr style="font-weight:700"><td>合計</td><td></td><td></td><td class="gc">$11,900</td></tr></table>`,
+    ],100);
+    const b=document.createElement("div");b.className="rb";b.id="rb1";
+    b.innerHTML=`<p style="font-size:16px;text-align:center">最低總供氣成本 \\(Z^* = \\$\\textbf{11,900}\\) 千美元</p>`;
+    el.appendChild(b);rl(b);
+    setTimeout(()=>document.getElementById("rb1")?.classList.add("on"),600);
+    const n=document.createElement("p");n.style.cssText="margin-top:12px;font-size:13px;color:var(--dim);line-height:1.7";
+    n.innerHTML="南方天然氣剩餘 500 − 200 − 300 = 0（binding）<br>西北天然氣剩餘 400 − 200 − 200 = 0（binding）";
+    el.appendChild(n);
+  }},
+  // 3: part d — 追加分析
+  {svg:()=>draw("optimal",OPT_D),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="(d) STEP 4 — 巴特勒需求增加 100";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">巴特勒郡的需求增加 100 → 新需求 = <span class="pp">300</span></p>`,
+      `<p class="ex" style="margin-top:6px">重新求解 LP，新的最佳解：</p>`,
+      `<table class="ta"><tr><th>路線</th><th>新供氣量</th><th>成本(千$)</th></tr>
+       <tr><td>南方 → 漢彌爾頓</td><td class="gc">300 <span style="color:var(--pink);font-size:11px">↑100</span></td><td class="gc">$3,000</td></tr>
+       <tr><td>南方 → 克拉蒙</td><td>300</td><td>$4,500</td></tr>
+       <tr><td>西北 → 漢彌爾頓</td><td>100 <span style="color:var(--pink);font-size:11px">↓100</span></td><td>$1,200</td></tr>
+       <tr><td>西北 → 巴特勒</td><td class="gc">300 <span style="color:var(--pink);font-size:11px">↑100</span></td><td class="gc">$4,500</td></tr>
+       <tr style="font-weight:700"><td>合計</td><td></td><td class="gc">$13,200</td></tr></table>`,
+    ],200,350);
+    const b=document.createElement("div");b.className="rb2";b.id="rb2";
+    b.innerHTML=`<p style="font-size:15px;text-align:center"><strong style="color:var(--purple)">結論：</strong>應向<span class="pp">南方天然氣</span>洽談額外 100 單位的供氣合約。</p>
+    <p style="font-size:13px;color:var(--dim);margin-top:8px;text-align:center">新的最佳解中，南方的供給從 500 增加到 600<br>成本增加 $13,200 − $11,900 = $1,300 千美元</p>`;
+    el.appendChild(b);rl(b);
+    setTimeout(()=>document.getElementById("rb2")?.classList.add("on"),1200);
+  }}
+];
+
+let cur=0;
+function render(){document.getElementById("pills").innerHTML=STEPS.map((_,i)=>`<div class="pill ${i<cur?'done':''} ${i===cur?'on':''}"></div>`).join("");document.getElementById("sN").textContent=`${cur+1} / ${STEPS.length}`;document.getElementById("bP").disabled=cur===0;document.getElementById("bN").disabled=cur===STEPS.length-1;STEPS[cur].svg();STEPS[cur].text(document.getElementById("T"));}
+function go(d){const n=cur+d;if(n>=0&&n<STEPS.length){cur=n;render();}}
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();go(1);}if(e.key==="ArrowLeft"){e.preventDefault();go(-1);}});
+render();
+</script>
+</body>
+</html>

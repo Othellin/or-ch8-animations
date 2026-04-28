@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第14題 轉運問題 — 從LP模式畫網路圖</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg:#0a0e1a;--card:#131a2e;--border:#1e2d4a;--text:#e2e8f0;--dim:#5a6a8a;--accent:#60a5fa;--green:#34d399;--yellow:#fbbf24;--pink:#f472b6;--orange:#fb923c;--red:#f87171;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);}
+.top-bar h1{font-size:16px;color:var(--accent);font-weight:700;}
+.pills{display:flex;gap:6px;}.pill{width:32px;height:6px;border-radius:3px;background:var(--border);transition:all .4s;}.pill.on{background:var(--accent);width:48px;}.pill.done{background:var(--green);}
+.main{flex:1;display:grid;grid-template-columns:50% 50%;overflow:hidden;}
+.svg-box{display:flex;align-items:center;justify-content:center;padding:20px;}
+.txt-box{padding:28px 24px;overflow-y:auto;border-left:1px solid var(--border);}
+.controls{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px;background:var(--card);border-top:1px solid var(--border);}
+.btn{font-family:'Noto Sans TC',sans-serif;font-size:15px;font-weight:600;padding:10px 32px;border:none;border-radius:8px;cursor:pointer;transition:all .2s;}
+.bp{background:var(--border);color:var(--text);}.bp:hover:not(:disabled){background:#2a3a5c;}
+.bn{background:var(--accent);color:#0a0e1a;}.bn:hover:not(:disabled){background:#93c5fd;}
+.btn:disabled{opacity:.25;cursor:not-allowed;}
+.sn{color:var(--dim);font-size:14px;font-weight:500;min-width:60px;text-align:center;}
+@keyframes nodeIn{0%{opacity:0;transform:scale(.3)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+@keyframes drawArc{to{stroke-dashoffset:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes typeLine{to{opacity:1;transform:translateX(0)}}
+@keyframes boxPop{0%{opacity:0;transform:scale(.95)}70%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+.tl{opacity:0;transform:translateX(-12px);}.tl.on{animation:typeLine .4s ease forwards;}
+.st{font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.ex{font-size:15px;line-height:1.9;}.ex strong{color:var(--accent);}.ex .pk{color:var(--pink);font-weight:700;}.ex .gn{color:var(--green);font-weight:700;}.ex .yw{color:var(--yellow);font-weight:700;}.ex .rd{color:var(--red);font-weight:700;}
+.mb{font-size:14px;background:rgba(96,165,250,.06);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin:12px 0;line-height:2.4;overflow-x:auto;}
+.rb{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:16px;margin:12px 0;opacity:0;transform:scale(.95);}.rb.on{animation:boxPop .5s ease forwards;}
+.katex{font-size:1em !important;}
+.hl-row{background:rgba(96,165,250,.08);border-radius:4px;padding:2px 6px;margin:2px 0;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="top-bar"><h1>CH8 第14題｜從 LP 模式畫出網路圖</h1><div class="pills" id="pills"></div></div>
+<div class="main"><div class="svg-box"><svg id="S" viewBox="0 0 520 400" width="100%"></svg></div><div class="txt-box" id="T"></div></div>
+<div class="controls"><button class="btn bp" id="bP" onclick="go(-1)">← 上一步</button><span class="sn" id="sN"></span><button class="btn bn" id="bN" onclick="go(1)">下一步 →</button></div>
+<script>
+// Network data
+const nodes=[
+  {id:1,x:100,y:80,val:5,type:"supply"},   // supply
+  {id:2,x:100,y:320,val:3,type:"supply"},  // supply
+  {id:3,x:300,y:60,val:-6,type:"demand"},  // demand
+  {id:4,x:300,y:200,val:2,type:"supply"},  // supply
+  {id:5,x:300,y:340,val:-4,type:"demand"}, // demand
+];
+// [from, to, cost]
+const arcs=[
+  [1,3,11],[1,4,12],[2,1,10],[3,4,8],[3,5,10],[4,2,11],[4,5,9],[5,2,12]
+];
+
+const svg=document.getElementById("S");
+function ns(t){return document.createElementNS("http://www.w3.org/2000/svg",t);}
+function gn(id){return nodes.find(n=>n.id===id);}
+
+function mid(a,b,off){
+  const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+  if(!off)return{x:mx,y:my};
+  const dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy);
+  return{x:mx+(-dy/l)*off,y:my+(dx/l)*off};
+}
+
+// mode: "empty" | "nodes" | "arcs" | "full" | "animate"
+// showArcs: array of arc indices to show, or "all"
+// showNodes: array of node ids to show, or "all"
+// showLabels: show supply/demand labels
+function draw(opts){
+  svg.innerHTML="";
+  const {mode,highlightArcs,highlightNodes,showSupplyDemand}=opts;
+  const isAnim=mode==="animate";
+  const showAllArcs=mode!=="empty"&&mode!=="nodes";
+  const showAllNodes=mode!=="empty";
+
+  // Draw arcs
+  if(showAllArcs){
+    arcs.forEach(([f,t,c],i)=>{
+      const n1=gn(f),n2=gn(t),g=ns("g");
+      const hl=highlightArcs&&highlightArcs.includes(i);
+      const dim=highlightArcs&&!hl;
+
+      // Offset for bidirectional arcs
+      const hasReverse=arcs.some(a=>a[0]===t&&a[1]===f);
+      const off=hasReverse?12:0;
+
+      // Curved path for offset
+      const mx=(n1.x+n2.x)/2,my=(n1.y+n2.y)/2;
+      const dx=n2.x-n1.x,dy=n2.y-n1.y,l=Math.hypot(dx,dy);
+      const nx=-dy/l,ny=dx/l;
+      const cx=mx+nx*off*2,cy=my+ny*off*2;
+
+      // Use quadratic bezier for offset arcs
+      const path=ns("path");
+      if(off){
+        path.setAttribute("d",`M${n1.x},${n1.y} Q${cx},${cy} ${n2.x},${n2.y}`);
+      } else {
+        path.setAttribute("d",`M${n1.x},${n1.y} L${n2.x},${n2.y}`);
+      }
+      path.setAttribute("fill","none");
+      path.setAttribute("stroke",hl?"var(--accent)":"#3a4a6c");
+      path.setAttribute("stroke-width",hl?"3":"2");
+      if(dim)path.setAttribute("opacity","0.2");
+
+      if(isAnim){
+        const len=path.getTotalLength?l*1.2:1000;
+        path.setAttribute("stroke-dasharray","1000");
+        path.setAttribute("stroke-dashoffset","1000");
+        path.style.animation=`drawArc 0.6s ${i*150}ms ease forwards`;
+      }
+      g.appendChild(path);
+
+      // Arrowhead
+      const ux=dx/l,uy=dy/l;
+      const ax=n2.x-ux*26,ay=n2.y-uy*26;
+      const px=-uy,py=ux;
+      const s=6;
+      // Adjust arrow position for curved arcs
+      let arX=n2.x-ux*24,arY=n2.y-uy*24;
+      if(off){arX+=nx*off*0.3;arY+=ny*off*0.3;}
+      const tipX=n2.x-(ux*18)+(off?nx*off*0.15:0);
+      const tipY=n2.y-(uy*18)+(off?ny*off*0.15:0);
+      const arrow=ns("polygon");
+      arrow.setAttribute("points",`${tipX},${tipY} ${arX-px*s+(off?nx*off*0.3:0)},${arY-py*s+(off?ny*off*0.3:0)} ${arX+px*s+(off?nx*off*0.3:0)},${arY+py*s+(off?ny*off*0.3:0)}`);
+      arrow.setAttribute("fill",hl?"var(--accent)":"#3a4a6c");
+      if(dim)arrow.setAttribute("opacity","0.2");
+      g.appendChild(arrow);
+
+      // Cost label
+      const lm=mid(n1,n2,off?off+14:14);
+      const ct=ns("text");
+      ct.setAttribute("x",lm.x);ct.setAttribute("y",lm.y);
+      ct.setAttribute("text-anchor","middle");ct.setAttribute("dominant-baseline","central");
+      ct.setAttribute("font-family","'JetBrains Mono',monospace");
+      ct.setAttribute("font-size","13");ct.setAttribute("font-weight",hl?"700":"400");
+      ct.setAttribute("fill",hl?"var(--accent)":"#8892a8");
+      if(dim)ct.setAttribute("opacity","0.2");
+      ct.textContent=`$${c}`;
+      if(isAnim){ct.setAttribute("opacity","0");ct.style.animation=`fadeUp 0.4s ${i*150+500}ms ease forwards`;}
+      g.appendChild(ct);
+
+      svg.appendChild(g);
+    });
+  }
+
+  // Draw nodes
+  if(showAllNodes){
+    nodes.forEach((n,i)=>{
+      const g=ns("g");
+      const hl=highlightNodes&&highlightNodes.includes(n.id);
+      const dim=highlightNodes&&!hl;
+
+      const circle=ns("circle");
+      circle.setAttribute("cx",n.x);circle.setAttribute("cy",n.y);circle.setAttribute("r","24");
+      circle.setAttribute("stroke-width","2.5");
+
+      if(n.type==="supply"){
+        circle.setAttribute("fill","rgba(96,165,250,0.15)");
+        circle.setAttribute("stroke","var(--accent)");
+      } else {
+        circle.setAttribute("fill","rgba(248,113,113,0.15)");
+        circle.setAttribute("stroke","var(--red)");
+      }
+      if(dim){circle.setAttribute("opacity","0.2");}
+      g.appendChild(circle);
+
+      // Node number
+      const lb=ns("text");
+      lb.setAttribute("x",n.x);lb.setAttribute("y",n.y);
+      lb.setAttribute("text-anchor","middle");lb.setAttribute("dominant-baseline","central");
+      lb.setAttribute("fill","white");lb.setAttribute("font-size","16");lb.setAttribute("font-weight","700");
+      lb.setAttribute("font-family","'Noto Sans TC',sans-serif");
+      lb.textContent=n.id;
+      if(dim)lb.setAttribute("opacity","0.2");
+      g.appendChild(lb);
+
+      // Supply/demand label
+      if(showSupplyDemand){
+        const tag=ns("text");
+        const tagX=n.x+(n.x<200?-36:36);
+        tag.setAttribute("x",tagX);tag.setAttribute("y",n.y-2);
+        tag.setAttribute("text-anchor",n.x<200?"end":"start");
+        tag.setAttribute("dominant-baseline","central");
+        tag.setAttribute("font-family","'JetBrains Mono',monospace");
+        tag.setAttribute("font-size","14");tag.setAttribute("font-weight","700");
+        if(n.val>0){tag.setAttribute("fill","var(--accent)");tag.textContent=`+${n.val}`;}
+        else{tag.setAttribute("fill","var(--red)");tag.textContent=`${n.val}`;}
+        if(dim)tag.setAttribute("opacity","0.2");
+
+        if(isAnim){tag.setAttribute("opacity","0");tag.style.animation=`fadeUp 0.4s ${i*200+1500}ms ease forwards`;}
+        g.appendChild(tag);
+      }
+
+      if(isAnim){g.setAttribute("opacity","0");g.style.animation=`nodeIn 0.5s ${i*200}ms ease forwards`;}
+      svg.appendChild(g);
+    });
+
+    // Legend
+    if(showSupplyDemand){
+      const lg=ns("g");
+      // Supply legend
+      const c1=ns("circle");c1.setAttribute("cx","30");c1.setAttribute("cy","385");c1.setAttribute("r","6");c1.setAttribute("fill","rgba(96,165,250,0.3)");c1.setAttribute("stroke","var(--accent)");c1.setAttribute("stroke-width","1.5");lg.appendChild(c1);
+      const t1=ns("text");t1.setAttribute("x","42");t1.setAttribute("y","385");t1.setAttribute("dominant-baseline","central");t1.setAttribute("fill","var(--dim)");t1.setAttribute("font-size","11");t1.setAttribute("font-family","'Noto Sans TC',sans-serif");t1.textContent="供給節點（正數）";lg.appendChild(t1);
+      // Demand legend
+      const c2=ns("circle");c2.setAttribute("cx","200");c2.setAttribute("cy","385");c2.setAttribute("r","6");c2.setAttribute("fill","rgba(248,113,113,0.15)");c2.setAttribute("stroke","var(--red)");c2.setAttribute("stroke-width","1.5");lg.appendChild(c2);
+      const t2=ns("text");t2.setAttribute("x","212");t2.setAttribute("y","385");t2.setAttribute("dominant-baseline","central");t2.setAttribute("fill","var(--dim)");t2.setAttribute("font-size","11");t2.setAttribute("font-family","'Noto Sans TC',sans-serif");t2.textContent="需求節點（負數）";lg.appendChild(t2);
+      svg.appendChild(lg);
+    }
+  }
+}
+
+function typed(el,lines,base=0,gap=300){
+  lines.forEach((h,i)=>{const d=document.createElement("div");d.classList.add("tl");d.innerHTML=h;el.appendChild(d);setTimeout(()=>{d.classList.add("on");rl(d);},base+i*gap);});
+}
+function rl(el){if(typeof renderMathInElement==="function")renderMathInElement(el,{delimiters:[{left:"$$",right:"$$",display:true},{left:"\\(",right:"\\)",display:false}],throwOnError:false});}
+
+const STEPS=[
+  // Step 0: 題目 — 只顯示LP
+  {
+    svg:()=>draw({mode:"empty"}),
+    text:el=>{
+      el.innerHTML="";
+      const t=document.createElement("div");t.className="st";t.textContent="STEP 1 — 題目：LP 模式";el.appendChild(t);
+      typed(el,[
+        `<p class="ex">題目給了一個<strong>轉運問題的 LP 模式</strong>，要求畫出對應的網路圖。</p>`,
+        `<div class="mb">
+$$\\min Z = 11x_{13} + 12x_{14} + 10x_{21} + 8x_{34} + 10x_{35} + 11x_{42} + 9x_{45} + 12x_{52}$$
+        </div>`,
+        `<div class="mb" style="font-size:13px">
+          <p>\\(x_{13} + x_{14} - x_{21} \\leq 5\\)　…節點 1</p>
+          <p>\\(x_{21} - x_{42} - x_{52} \\leq 3\\)　…節點 2</p>
+          <p>\\(x_{13} - x_{34} - x_{35} \\leq 6\\)　…節點 3</p>
+          <p>\\(-x_{14} - x_{34} + x_{42} + x_{45} \\leq 2\\)　…節點 4</p>
+          <p>\\(x_{35} + x_{45} - x_{52} \\leq 4\\)　…節點 5</p>
+          <br>
+          <p>\\(x_{ij} \\geq 0\\)</p>
+        </div>`,
+      ],200,500);
+    }
+  },
+  // Step 1: 找出節點和弧
+  {
+    svg:()=>draw({mode:"nodes",showSupplyDemand:false}),
+    text:el=>{
+      el.innerHTML="";
+      const t=document.createElement("div");t.className="st";t.textContent="STEP 2 — 從變數找出弧";el.appendChild(t);
+      typed(el,[
+        `<p class="ex">目標函數中的每個 \\(x_{ij}\\) 代表一條<strong>從節點 \\(i\\) 到節點 \\(j\\) 的弧</strong>：</p>`,
+        `<div class="mb">
+          <p>\\(x_{13}\\) → 弧 1→3，成本 $11</p>
+          <p>\\(x_{14}\\) → 弧 1→4，成本 $12</p>
+          <p>\\(x_{21}\\) → 弧 2→1，成本 $10</p>
+          <p>\\(x_{34}\\) → 弧 3→4，成本 $8</p>
+          <p>\\(x_{35}\\) → 弧 3→5，成本 $10</p>
+          <p>\\(x_{42}\\) → 弧 4→2，成本 $11</p>
+          <p>\\(x_{45}\\) → 弧 4→5，成本 $9</p>
+          <p>\\(x_{52}\\) → 弧 5→2，成本 $12</p>
+        </div>`,
+        `<p class="ex">共 <strong>5 個節點、8 條弧</strong></p>`,
+      ],200,400);
+    }
+  },
+  // Step 2: 分析限制式判斷供需
+  {
+    svg:()=>draw({mode:"nodes",showSupplyDemand:false}),
+    text:el=>{
+      el.innerHTML="";
+      const t=document.createElement("div");t.className="st";t.textContent="STEP 3 — 從限制式判斷供需";el.appendChild(t);
+      typed(el,[
+        `<p class="ex">每個限制式對應一個節點。<br>判斷規則：<strong>流出量 − 流入量 ≤ 供需值</strong></p>`,
+        `<div class="mb" style="font-size:13px">
+          <p><strong style="color:var(--accent)">節點 1</strong>：流出 \\((x_{13}+x_{14})\\) − 流入 \\((x_{21})\\) ≤ <strong>5</strong></p>
+          <p>→ <span style="color:var(--accent)">供給 = 5</span></p>
+          <br>
+          <p><strong style="color:var(--accent)">節點 2</strong>：流出 \\((x_{21})\\) − 流入 \\((x_{42}+x_{52})\\) ≤ <strong>3</strong></p>
+          <p>→ <span style="color:var(--accent)">供給 = 3</span></p>
+          <br>
+          <p><strong style="color:var(--red)">節點 3</strong>：流入 \\((x_{13})\\) − 流出 \\((x_{34}+x_{35})\\) ≤ <strong>6</strong></p>
+          <p>→ 流入可超過流出最多 6 → <span style="color:var(--red)">需求 = 6</span></p>
+          <br>
+          <p><strong style="color:var(--accent)">節點 4</strong>：流出 \\((x_{42}+x_{45})\\) − 流入 \\((x_{14}+x_{34})\\) ≤ <strong>2</strong></p>
+          <p>→ <span style="color:var(--accent)">供給 = 2</span></p>
+          <br>
+          <p><strong style="color:var(--red)">節點 5</strong>：流入 \\((x_{35}+x_{45})\\) − 流出 \\((x_{52})\\) ≤ <strong>4</strong></p>
+          <p>→ <span style="color:var(--red)">需求 = 4</span></p>
+        </div>`,
+      ],200,500);
+    }
+  },
+  // Step 3: 驗證平衡
+  {
+    svg:()=>draw({mode:"nodes",showSupplyDemand:true}),
+    text:el=>{
+      el.innerHTML="";
+      const t=document.createElement("div");t.className="st";t.textContent="STEP 4 — 驗證供需平衡";el.appendChild(t);
+      typed(el,[
+        `<p class="ex">整理各節點的供需：</p>`,
+        `<div class="mb">
+          <p><span style="color:var(--accent)">節點 1：供給 +5</span></p>
+          <p><span style="color:var(--accent)">節點 2：供給 +3</span></p>
+          <p><span style="color:var(--red)">節點 3：需求 −6</span></p>
+          <p><span style="color:var(--accent)">節點 4：供給 +2</span></p>
+          <p><span style="color:var(--red)">節點 5：需求 −4</span></p>
+        </div>`,
+        `<p class="ex">總供給 = \\(5 + 3 + 2 = 10\\)</p>`,
+        `<p class="ex">總需求 = \\(6 + 4 = 10\\)</p>`,
+      ],200,400);
+      const b=document.createElement("div");b.className="rb";b.id="rb1";
+      b.innerHTML=`<p style="font-size:15px;text-align:center"><strong style="color:var(--green)">總供給 = 總需求 = 10 → 供需平衡 ✓</strong></p>`;
+      el.appendChild(b);rl(b);
+      setTimeout(()=>document.getElementById("rb1")?.classList.add("on"),2200);
+    }
+  },
+  // Step 4: 完整網路圖（動畫）
+  {
+    svg:()=>draw({mode:"animate",showSupplyDemand:true}),
+    text:el=>{
+      el.innerHTML="";
+      const t=document.createElement("div");t.className="st";t.textContent="STEP 5 — 完整網路圖";el.appendChild(t);
+      typed(el,[
+        `<p class="ex">將所有節點、弧、成本與供需標示在網路圖上：</p>`,
+        `<div class="mb" style="font-size:13px">
+          <p><strong>弧與成本：</strong></p>
+          <p>1→3 ($11)　1→4 ($12)　2→1 ($10)</p>
+          <p>3→4 ($8)　3→5 ($10)</p>
+          <p>4→2 ($11)　4→5 ($9)　5→2 ($12)</p>
+        </div>`,
+        `<div class="mb" style="font-size:13px">
+          <p><strong>供需：</strong></p>
+          <p><span style="color:var(--accent)">正數 = 供給</span>（節點1: +5、節點2: +3、節點4: +2）</p>
+          <p><span style="color:var(--red)">負數 = 需求</span>（節點3: −6、節點5: −4）</p>
+        </div>`,
+      ],200,400);
+      const b=document.createElement("div");b.className="rb";b.id="rb2";
+      b.innerHTML=`<p style="font-size:14px;text-align:center"><strong style="color:var(--green)">這就是此 LP 模式對應的網路圖</strong><br><span style="font-size:12px;color:var(--dim)">注意弧的方向：例如 2→1 表示流量可從節點2流向節點1</span></p>`;
+      el.appendChild(b);rl(b);
+      setTimeout(()=>document.getElementById("rb2")?.classList.add("on"),1600);
+    }
+  },
+];
+
+let cur=0;
+function render(){
+  document.getElementById("pills").innerHTML=STEPS.map((_,i)=>`<div class="pill ${i<cur?'done':''} ${i===cur?'on':''}"></div>`).join("");
+  document.getElementById("sN").textContent=`${cur+1} / ${STEPS.length}`;
+  document.getElementById("bP").disabled=cur===0;
+  document.getElementById("bN").disabled=cur===STEPS.length-1;
+  STEPS[cur].svg();
+  STEPS[cur].text(document.getElementById("T"));
+}
+function go(d){const n=cur+d;if(n>=0&&n<STEPS.length){cur=n;render();}}
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();go(1);}if(e.key==="ArrowLeft"){e.preventDefault();go(-1);}});
+render();
+</script>
+</body>
+</html>

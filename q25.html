@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第25題 最短路徑問題 — 動畫解題</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg:#0a0e1a;--card:#131a2e;--border:#1e2d4a;--text:#e2e8f0;--dim:#5a6a8a;--accent:#60a5fa;--green:#34d399;--yellow:#fbbf24;--pink:#f472b6;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);}
+.top-bar h1{font-size:16px;color:var(--accent);font-weight:700;}
+.pills{display:flex;gap:6px;}
+.pill{width:32px;height:6px;border-radius:3px;background:var(--border);transition:all .4s;}
+.pill.on{background:var(--accent);width:48px;}.pill.done{background:var(--green);}
+.main{flex:1;display:grid;grid-template-columns:55% 45%;overflow:hidden;}
+.svg-box{display:flex;align-items:center;justify-content:center;padding:20px;}
+.txt-box{padding:32px 28px;overflow-y:auto;border-left:1px solid var(--border);}
+.controls{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px;background:var(--card);border-top:1px solid var(--border);}
+.btn{font-family:'Noto Sans TC',sans-serif;font-size:15px;font-weight:600;padding:10px 32px;border:none;border-radius:8px;cursor:pointer;transition:all .2s;}
+.bp{background:var(--border);color:var(--text);}.bp:hover:not(:disabled){background:#2a3a5c;}
+.bn{background:var(--accent);color:#0a0e1a;}.bn:hover:not(:disabled){background:#93c5fd;}
+.btn:disabled{opacity:.25;cursor:not-allowed;}
+.sn{color:var(--dim);font-size:14px;font-weight:500;min-width:60px;text-align:center;}
+
+@keyframes nodeIn{0%{opacity:0;transform:scale(.3)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+@keyframes drawArc{to{stroke-dashoffset:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseGlow{0%,100%{filter:drop-shadow(0 0 4px var(--pink));stroke-width:4}50%{filter:drop-shadow(0 0 14px var(--pink));stroke-width:6}}
+@keyframes typeLine{to{opacity:1;transform:translateX(0)}}
+@keyframes pathReveal{0%{opacity:0;letter-spacing:20px;filter:blur(8px)}100%{opacity:1;letter-spacing:4px;filter:blur(0)}}
+@keyframes boxPop{0%{opacity:0;transform:scale(.95)}70%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+
+.tl{opacity:0;transform:translateX(-12px);}
+.tl.on{animation:typeLine .4s ease forwards;}
+.st{font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.ex{font-size:15px;line-height:1.9;}.ex strong{color:var(--accent);}.ex .pk{color:var(--pink);font-weight:700;}.ex .gn{color:var(--green);font-weight:700;}.ex .yw{color:var(--yellow);font-weight:700;}
+.mb{font-size:14px;background:rgba(96,165,250,.06);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin:12px 0;line-height:2.4;overflow-x:auto;}
+.rb{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:16px;margin:12px 0;opacity:0;transform:scale(.95);}
+.rb.on{animation:boxPop .5s ease forwards;}
+.bp-txt{font-size:28px;font-weight:900;color:var(--pink);letter-spacing:4px;text-align:center;margin:20px 0;opacity:0;}
+.bp-txt.on{animation:pathReveal .8s ease forwards;}
+.ta{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;}
+.ta th{background:rgba(96,165,250,.12);color:var(--accent);font-weight:600;padding:8px 12px;border:1px solid var(--border);}
+.ta td{padding:8px 12px;border:1px solid var(--border);text-align:center;}
+.ta .pc{background:rgba(244,114,182,.12);color:var(--pink);font-weight:700;}
+
+/* KaTeX color overrides */
+.katex{font-size:1em !important;}
+.katex .mord.text{font-family:'Noto Sans TC',sans-serif !important;}
+.k-pk .katex{color:var(--pink) !important;}
+.k-yw .katex{color:var(--yellow) !important;}
+.k-gn .katex{color:var(--green) !important;}
+.k-ac .katex{color:var(--accent) !important;}
+.k-dm .katex{color:var(--dim) !important;}
+</style>
+</head>
+<body>
+<div class="top-bar"><h1>CH8 第25題｜最短路徑問題</h1><div class="pills" id="pills"></div></div>
+<div class="main"><div class="svg-box"><svg id="S" viewBox="0 0 640 400" width="100%"></svg></div><div class="txt-box" id="T"></div></div>
+<div class="controls"><button class="btn bp" id="bP" onclick="go(-1)">← 上一步</button><span class="sn" id="sN"></span><button class="btn bn" id="bN" onclick="go(1)">下一步 →</button></div>
+
+<script>
+const N=[{id:1,x:50,y:190},{id:2,x:160,y:60},{id:3,x:160,y:310},{id:4,x:310,y:165},{id:5,x:190,y:190},{id:6,x:420,y:95},{id:7,x:460,y:270},{id:8,x:290,y:330},{id:9,x:430,y:350},{id:10,x:580,y:190}];
+const A=[[1,2,8,0],[1,3,6,0],[1,5,5,0],[2,5,3,1],[2,6,12,0],[3,4,6,0],[3,8,8,0],[4,5,4,0],[4,6,5,0],[5,8,6,0],[6,7,3,0],[6,9,5,0],[7,10,8,0],[8,9,5,0],[9,7,2,1],[9,10,10,0]];
+const PATH=[[1,5],[5,4],[4,6],[6,7],[7,10]];
+const PN=[1,5,4,6,7,10];
+
+function gn(id){return N.find(n=>n.id===id);}
+function mid(a,b,off){const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;if(!off)return{x:mx,y:my};const dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy);return{x:mx+(-dy/l)*off,y:my+(dx/l)*off};}
+function onPath(f,t,ow){if(PATH.some(p=>p[0]===f&&p[1]===t))return 1;if(!ow&&PATH.some(p=>p[0]===t&&p[1]===f))return -1;return 0;}
+
+const svg=document.getElementById("S");
+function ns(tag){return document.createElementNS("http://www.w3.org/2000/svg",tag);}
+
+function draw(mode){
+  svg.innerHTML="";
+  const isAnim=mode==="animate",isP=mode==="path";
+  A.forEach(([f,t,c,ow],i)=>{
+    const n1=gn(f),n2=gn(t),g=ns("g");
+    const dir=onPath(f,t,ow),hp=isP&&dir!==0,dim=isP&&!hp;
+    const line=ns("line");
+    line.setAttribute("x1",n1.x);line.setAttribute("y1",n1.y);line.setAttribute("x2",n2.x);line.setAttribute("y2",n2.y);line.setAttribute("fill","none");
+    if(hp){line.setAttribute("stroke","var(--pink)");line.setAttribute("stroke-width","4");line.style.animation="pulseGlow 1.5s ease infinite";}
+    else{line.setAttribute("stroke","#3a4a6c");line.setAttribute("stroke-width","2");}
+    if(dim)line.setAttribute("opacity","0.15");
+    if(isAnim){line.setAttribute("stroke-dasharray","1000");line.setAttribute("stroke-dashoffset","1000");line.style.animation=`drawArc 0.6s ${i*80}ms ease forwards`;}
+    g.appendChild(line);
+    if(ow){
+      const dx=n2.x-n1.x,dy=n2.y-n1.y,l=Math.hypot(dx,dy),ux=dx/l,uy=dy/l,px=-uy,py=ux,s=7,ax=n2.x-ux*24,ay=n2.y-uy*24;
+      const arrow=ns("polygon");arrow.setAttribute("points",`${n2.x-ux*20},${n2.y-uy*20} ${ax-px*s},${ay-py*s} ${ax+px*s},${ay+py*s}`);
+      arrow.setAttribute("fill",hp?"var(--pink)":"var(--yellow)");if(dim)arrow.setAttribute("opacity","0.15");g.appendChild(arrow);
+      const tag=ns("text"),tm=mid(n1,n2,18);tag.setAttribute("x",tm.x);tag.setAttribute("y",tm.y-10);tag.setAttribute("font-size","10");tag.setAttribute("fill","var(--yellow)");tag.setAttribute("font-weight","700");tag.setAttribute("font-family","'Noto Sans TC',sans-serif");tag.textContent="單行道";if(dim)tag.setAttribute("opacity","0.15");g.appendChild(tag);
+    }
+    const m=mid(n1,n2,ow?18:14),ct=ns("text");
+    ct.setAttribute("x",m.x);ct.setAttribute("y",m.y);ct.setAttribute("text-anchor","middle");ct.setAttribute("dominant-baseline","central");ct.setAttribute("font-family","'JetBrains Mono',monospace");
+    ct.setAttribute("fill",hp?"var(--pink)":"#8892a8");ct.setAttribute("font-size",hp?"15":"12");ct.setAttribute("font-weight",hp?"700":"500");ct.textContent=c;
+    if(dim)ct.setAttribute("opacity","0.15");
+    if(isAnim){ct.setAttribute("opacity","0");ct.style.animation=`fadeUp 0.4s ${i*80+500}ms ease forwards`;}
+    g.appendChild(ct);
+    if(hp){
+      const dot=ns("circle");dot.setAttribute("r","5");dot.setAttribute("fill","var(--pink)");dot.style.filter="drop-shadow(0 0 6px var(--pink))";
+      const am=ns("animateMotion");am.setAttribute("dur","1.5s");am.setAttribute("repeatCount","indefinite");
+      if(dir===1)am.setAttribute("path",`M${n1.x},${n1.y} L${n2.x},${n2.y}`);
+      else am.setAttribute("path",`M${n2.x},${n2.y} L${n1.x},${n1.y}`);
+      dot.appendChild(am);g.appendChild(dot);
+    }
+    svg.appendChild(g);
+  });
+  N.forEach((n,i)=>{
+    const g=ns("g"),dim=isP&&!PN.includes(n.id);
+    const circle=ns("circle");circle.setAttribute("cx",n.x);circle.setAttribute("cy",n.y);circle.setAttribute("r","20");circle.setAttribute("stroke","var(--accent)");circle.setAttribute("stroke-width","2");circle.setAttribute("fill","var(--card)");
+    if(n.id===1)circle.setAttribute("fill","var(--accent)");if(n.id===10)circle.setAttribute("fill","var(--green)");
+    if(isP&&PN.includes(n.id)&&n.id!==1&&n.id!==10)circle.setAttribute("fill","var(--pink)");
+    if(dim)circle.setAttribute("opacity","0.2");
+    g.appendChild(circle);
+    const lb=ns("text");lb.setAttribute("x",n.x);lb.setAttribute("y",n.y);lb.setAttribute("text-anchor","middle");lb.setAttribute("dominant-baseline","central");lb.setAttribute("fill","white");lb.setAttribute("font-size","14");lb.setAttribute("font-weight","700");lb.setAttribute("font-family","'Noto Sans TC',sans-serif");lb.textContent=n.id;if(dim)lb.setAttribute("opacity","0.2");g.appendChild(lb);
+    if(isAnim){g.setAttribute("opacity","0");g.style.animation=`nodeIn 0.5s ${i*120+100}ms ease forwards`;}
+    svg.appendChild(g);
+  });
+}
+
+function typed(el,lines,base=0,gap=300){
+  lines.forEach((h,i)=>{const d=document.createElement("div");d.classList.add("tl");d.innerHTML=h;el.appendChild(d);setTimeout(()=>{d.classList.add("on");renderLatex(d);},base+i*gap);});
+}
+function renderLatex(el){
+  if(typeof renderMathInElement==="function") renderMathInElement(el,{delimiters:[{left:"$$",right:"$$",display:true},{left:"\\(",right:"\\)",display:false}],throwOnError:false});
+}
+
+// ========== STEPS ==========
+const STEPS=[
+  // 0: 題目
+  {svg:()=>draw("animate"), text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 1 — 題目說明";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">城市計程車公司為紐約市的乘客提供 <strong>10 個上下車地點</strong>。</p>`,
+      `<p class="ex" style="margin-top:8px">司機從 <strong>地點 1</strong> 出發，要找到到 <strong>地點 10</strong> 的<span class="pk">最短路徑</span>。</p>`,
+      `<p class="ex" style="margin-top:8px">弧上數字 = <strong>行車時間（分鐘）</strong></p>`,
+      `<p class="ex" style="margin-top:8px">圖上有 <span class="yw">2 條單行道</span>（以箭頭標示方向）。</p>`,
+      `<div style="margin-top:12px;padding:10px 14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:8px;"><p style="font-size:13px;color:var(--dim)">⬤ <span style="color:var(--accent)">藍色</span> = 起點　⬤ <span style="color:var(--green)">綠色</span> = 終點　⬤ <span style="color:var(--yellow)">黃色箭頭</span> = 單行道</p></div>`
+    ],200,400);
+  }},
+  // 1: 建模思路
+  {svg:()=>draw("static"), text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 2 — 建模思路";el.appendChild(t);
+    typed(el,[
+      `<p class="ex"><strong>關鍵觀念：</strong>最短路徑問題是<span class="gn">轉運問題的特例</span>。</p>`,
+      `<p class="ex" style="margin-top:12px">假設有「1 單位的流量」從起點流到終點：</p>`,
+      `<div class="mb">
+        <p><span class="k-ac">\\(\\textbf{起點}\\)</span>（節點 1）：\\(\\text{流出} - \\text{流入} = 1\\)</p>
+        <p><span class="k-dm">\\(\\textbf{轉運}\\)</span>（節點 2～9）：\\(\\text{流出} - \\text{流入} = 0\\)</p>
+        <p><span class="k-gn">\\(\\textbf{終點}\\)</span>（節點 10）：\\(\\text{流出} - \\text{流入} = -1\\)</p>
+      </div>`,
+      `<p class="ex">每條弧 → 一個決策變數 \\(x_{ij}\\)<br>每個節點 → 一個流量守恆限制式</p>`,
+      `<div class="rb" id="rb1"><p style="font-size:14px"><strong style="color:var(--green)">模型規模：</strong>29 個決策變數、10 個限制式</p></div>`
+    ],200,400);
+    setTimeout(()=>{document.getElementById("rb1")?.classList.add("on");},2400);
+  }},
+  // 2: 目標函數
+  {svg:()=>draw("static"), text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 3 — 目標函數";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">令 \\(x_{ij}\\) = 弧 \\(i \\to j\\) 上的流量（0 或 1）</p>`,
+      `<p class="ex" style="margin-top:8px">目標：<span class="pk">最小化總行車時間</span></p>`,
+      `<div class="mb">
+$$\\min Z = 8x_{12} + 8x_{21} + 6x_{13} + 6x_{31} + 5x_{15} + 5x_{51}$$
+$$+ \\color{#fbbf24}{3x_{25}} + 12x_{26} + 12x_{62}$$
+$$+ 6x_{34} + 6x_{43} + 8x_{38} + 8x_{83}$$
+$$+ 4x_{45} + 4x_{54} + 5x_{46} + 5x_{64}$$
+$$+ 6x_{58} + 6x_{85}$$
+$$+ 3x_{67} + 3x_{76} + 5x_{69} + 5x_{96}$$
+$$+ 8x_{7,10} + 8x_{10,7}$$
+$$+ 5x_{89} + 5x_{98} + \\color{#fbbf24}{2x_{97}}$$
+$$+ 10x_{9,10} + 10x_{10,9}$$
+      </div>`,
+      `<p class="ex" style="font-size:13px;color:var(--dim)"><span style="color:var(--yellow)">黃色</span> = 單行道變數（只有一個方向）</p>`
+    ],200,500);
+  }},
+  // 3: 限制式
+  {svg:()=>draw("static"), text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 4 — 節點限制式";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">每個節點：<strong>流出 − 流入 = 供需值</strong></p>`,
+      `<div class="mb" style="font-size:13px">
+        <p><strong style="color:var(--accent)">節點 1（起點）</strong></p>
+        <p>\\(x_{12} + x_{13} + x_{15} - x_{21} - x_{31} - x_{51} = 1\\)</p>
+        <br>
+        <p><strong style="color:var(--dim)">轉運節點</strong></p>
+        <p>節點 2：\\(x_{21} + x_{25} + x_{26} - x_{12} = 0\\)</p>
+        <p>節點 3：\\(x_{31} + x_{34} + x_{38} - x_{13} - x_{43} - x_{83} = 0\\)</p>
+        <p>節點 4：\\(x_{43} + x_{45} + x_{46} - x_{34} - x_{54} - x_{64} = 0\\)</p>
+        <p>節點 5：\\(x_{51} + x_{54} + x_{58} - x_{15} - x_{25} - x_{45} - x_{85} = 0\\)</p>
+        <p>節點 6：\\(x_{62} + x_{64} + x_{67} + x_{69} - x_{26} - x_{46} - x_{76} - x_{96} = 0\\)</p>
+        <p>節點 7：\\(x_{76} + x_{7,10} - x_{67} - x_{97} - x_{10,7} = 0\\)</p>
+        <p>節點 8：\\(x_{83} + x_{85} + x_{89} - x_{38} - x_{58} - x_{98} = 0\\)</p>
+        <p>節點 9：\\(x_{96} + x_{97} + x_{98} + x_{9,10} - x_{69} - x_{89} - x_{10,9} = 0\\)</p>
+        <br>
+        <p><strong style="color:var(--green)">節點 10（終點）</strong></p>
+        <p>\\(x_{10,7} + x_{10,9} - x_{7,10} - x_{9,10} = -1\\)</p>
+      </div>`
+    ],200,500);
+  }},
+  // 4: 求解
+  {svg:()=>draw("path"), text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 5 — 最佳解";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">使用 LINGO 或線上 LP 工具求解：</p>`,
+      `<div class="mb">
+        <p><span class="k-pk">\\(x_{15} = 1\\)</span>　節點 1 → 5　⏱ 5 分鐘</p>
+        <p><span class="k-pk">\\(x_{54} = 1\\)</span>　節點 5 → 4　⏱ 4 分鐘</p>
+        <p><span class="k-pk">\\(x_{46} = 1\\)</span>　節點 4 → 6　⏱ 5 分鐘</p>
+        <p><span class="k-pk">\\(x_{67} = 1\\)</span>　節點 6 → 7　⏱ 3 分鐘</p>
+        <p><span class="k-pk">\\(x_{7,10} = 1\\)</span>　節點 7 → 10　⏱ 8 分鐘</p>
+        <br>
+        <p>其餘所有 \\(x_{ij} = 0\\)</p>
+      </div>`,
+      `<p class="ex" style="font-size:13px;color:var(--dim)">左圖中<span class="pk">粉紅色流動光點</span>即為最佳路徑上的流量方向。</p>`
+    ],200,400);
+  }},
+  // 5: 結論
+  {svg:()=>draw("path"), text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 6 — 結論";el.appendChild(t);
+    const p=document.createElement("div");p.className="bp-txt";p.textContent="1 → 5 → 4 → 6 → 7 → 10";el.appendChild(p);
+    setTimeout(()=>p.classList.add("on"),300);
+    const tw=document.createElement("div");
+    tw.innerHTML=`<table class="ta"><tr><th>路段</th><th>\\(1 \\to 5\\)</th><th>\\(5 \\to 4\\)</th><th>\\(4 \\to 6\\)</th><th>\\(6 \\to 7\\)</th><th>\\(7 \\to 10\\)</th><th>合計</th></tr><tr><td>時間（分）</td><td class="pc">5</td><td class="pc">4</td><td class="pc">5</td><td class="pc">3</td><td class="pc">8</td><td class="pc">25</td></tr></table>`;
+    el.appendChild(tw);
+    renderLatex(tw);
+    const b=document.createElement("div");b.className="rb";b.id="rb2";
+    b.innerHTML=`<p style="font-size:16px;text-align:center">最短行車時間 \\(Z^* = \\textbf{25}\\) <strong style="color:var(--green)">分鐘</strong></p>`;
+    el.appendChild(b);
+    renderLatex(b);
+    setTimeout(()=>document.getElementById("rb2")?.classList.add("on"),1000);
+    const nt=document.createElement("p");nt.style.cssText="margin-top:16px;font-size:12px;color:var(--dim)";
+    nt.textContent="⚠️ 本動畫的網路數據為示意用途，請以課本原圖數據為準。";el.appendChild(nt);
+  }}
+];
+
+let cur=0;
+function render(){
+  document.getElementById("pills").innerHTML=STEPS.map((_,i)=>`<div class="pill ${i<cur?'done':''} ${i===cur?'on':''}"></div>`).join("");
+  document.getElementById("sN").textContent=`${cur+1} / ${STEPS.length}`;
+  document.getElementById("bP").disabled=cur===0;
+  document.getElementById("bN").disabled=cur===STEPS.length-1;
+  STEPS[cur].svg();
+  STEPS[cur].text(document.getElementById("T"));
+}
+function go(d){const n=cur+d;if(n>=0&&n<STEPS.length){cur=n;render();}}
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();go(1);}if(e.key==="ArrowLeft"){e.preventDefault();go(-1);}});
+render();
+</script>
+</body>
+</html>

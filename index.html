@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業研究 第8章 習題動畫解析</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+:root{--bg:#0a0e1a;--card:#131a2e;--border:#1e2d4a;--text:#e2e8f0;--dim:#5a6a8a;--accent:#60a5fa;--green:#34d399;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px;}
+.header{text-align:center;margin-bottom:40px;}
+.header h1{font-size:28px;font-weight:900;color:var(--accent);margin-bottom:8px;}
+.header p{font-size:15px;color:var(--dim);line-height:1.6;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;max-width:960px;width:100%;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;transition:all .3s;cursor:pointer;text-decoration:none;color:var(--text);}
+.card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 8px 32px rgba(96,165,250,0.12);}
+.card .tag{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:rgba(96,165,250,0.1);padding:3px 10px;border-radius:20px;margin-bottom:12px;letter-spacing:1px;}
+.card h2{font-size:18px;font-weight:700;margin-bottom:8px;}
+.card p{font-size:14px;color:var(--dim);line-height:1.7;}
+.card .steps{margin-top:12px;font-size:12px;color:var(--green);}
+.footer{margin-top:48px;font-size:12px;color:var(--dim);text-align:center;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>作業研究 第 8 章</h1>
+  <p>配送及網路模式 — 習題互動動畫解析<br>國立勤益科技大學 工業工程與管理系</p>
+</div>
+<div class="grid">
+  <a class="card" href="q02.html">
+    <span class="tag">運輸問題</span>
+    <h2>第 2 題</h2>
+    <p>Jefferson City 與 Omaha 兩起點運送到三個終點的最低成本運輸方案。</p>
+    <div class="steps">6 步驟 ｜ 最佳解 $435</div>
+  </a>
+  <a class="card" href="q03.html">
+    <span class="tag">運輸問題</span>
+    <h2>第 3 題</h2>
+    <p>三郡公用事業公司天然氣供應問題，含需求增加的追加分析（d 小題）。</p>
+    <div class="steps">4 步驟 ｜ 最佳解 $11,900k</div>
+  </a>
+  <a class="card" href="q14.html">
+    <span class="tag">轉運問題</span>
+    <h2>第 14 題</h2>
+    <p>從 LP 模式反推網路圖：分析變數找弧、分析限制式判斷供需。</p>
+    <div class="steps">5 步驟 ｜ 畫出網路圖</div>
+  </a>
+  <a class="card" href="q15.html">
+    <span class="tag">轉運問題</span>
+    <h2>第 15 題</h2>
+    <p>租車公司 7 個地點的車輛調配，含轉運樞紐分析。</p>
+    <div class="steps">5 步驟 ｜ 最佳解 $917</div>
+  </a>
+  <a class="card" href="q25.html">
+    <span class="tag">最短路徑</span>
+    <h2>第 25 題</h2>
+    <p>計程車公司從地點 1 到地點 10 的最短路徑，含單行道限制。</p>
+    <div class="steps">6 步驟 ｜ 最短時間 25 分鐘</div>
+  </a>
+</div>
+<div class="footer">
+  114 學年度 教學實踐研究計畫<br>
+  BOPPPS 教學法 × 微任務學習<br>
+  點擊卡片進入互動動畫 → 按「下一步」或鍵盤右鍵操作
+</div>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第15題 租車公司車輛調配 — 動畫解題</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg:#0a0e1a;--card:#131a2e;--border:#1e2d4a;--text:#e2e8f0;--dim:#5a6a8a;--accent:#60a5fa;--green:#34d399;--yellow:#fbbf24;--pink:#f472b6;--orange:#fb923c;--red:#f87171;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);}
+.top-bar h1{font-size:16px;color:var(--accent);font-weight:700;}
+.pills{display:flex;gap:6px;}.pill{width:32px;height:6px;border-radius:3px;background:var(--border);transition:all .4s;}.pill.on{background:var(--accent);width:48px;}.pill.done{background:var(--green);}
+.main{flex:1;display:grid;grid-template-columns:55% 45%;overflow:hidden;}
+.svg-box{display:flex;align-items:center;justify-content:center;padding:16px;}
+.txt-box{padding:28px 24px;overflow-y:auto;border-left:1px solid var(--border);}
+.controls{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px;background:var(--card);border-top:1px solid var(--border);}
+.btn{font-family:'Noto Sans TC',sans-serif;font-size:15px;font-weight:600;padding:10px 32px;border:none;border-radius:8px;cursor:pointer;transition:all .2s;}
+.bp{background:var(--border);color:var(--text);}.bp:hover:not(:disabled){background:#2a3a5c;}
+.bn{background:var(--accent);color:#0a0e1a;}.bn:hover:not(:disabled){background:#93c5fd;}
+.btn:disabled{opacity:.25;cursor:not-allowed;}
+.sn{color:var(--dim);font-size:14px;font-weight:500;min-width:60px;text-align:center;}
+@keyframes nodeIn{0%{opacity:0;transform:scale(.3)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+@keyframes drawArc{to{stroke-dashoffset:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseGlow{0%,100%{filter:drop-shadow(0 0 4px var(--green));stroke-width:4}50%{filter:drop-shadow(0 0 12px var(--green));stroke-width:5}}
+@keyframes typeLine{to{opacity:1;transform:translateX(0)}}
+@keyframes boxPop{0%{opacity:0;transform:scale(.95)}70%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+.tl{opacity:0;transform:translateX(-12px);}.tl.on{animation:typeLine .4s ease forwards;}
+.st{font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.ex{font-size:15px;line-height:1.9;}.ex strong{color:var(--accent);}.ex .pk{color:var(--pink);font-weight:700;}.ex .gn{color:var(--green);font-weight:700;}.ex .yw{color:var(--yellow);font-weight:700;}
+.mb{font-size:14px;background:rgba(96,165,250,.06);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin:12px 0;line-height:2.4;overflow-x:auto;}
+.rb{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:16px;margin:12px 0;opacity:0;transform:scale(.95);}.rb.on{animation:boxPop .5s ease forwards;}
+.ta{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0;}
+.ta th{background:rgba(96,165,250,.12);color:var(--accent);font-weight:600;padding:6px 10px;border:1px solid var(--border);}
+.ta td{padding:6px 10px;border:1px solid var(--border);text-align:center;}
+.ta .gc{background:rgba(52,211,153,.12);color:var(--green);font-weight:700;}
+.katex{font-size:1em !important;}
+</style>
+</head>
+<body>
+<div class="top-bar"><h1>CH8 第15題｜租車公司車輛調配（轉運問題）</h1><div class="pills" id="pills"></div></div>
+<div class="main"><div class="svg-box"><svg id="S" viewBox="0 0 640 380" width="100%"></svg></div><div class="txt-box" id="T"></div></div>
+<div class="controls"><button class="btn bp" id="bP" onclick="go(-1)">← 上一步</button><span class="sn" id="sN"></span><button class="btn bn" id="bN" onclick="go(1)">下一步 →</button></div>
+<script>
+// Network from textbook figure
+const nodes=[
+  {id:1,x:60, y:190,val:-8,type:"demand"},
+  {id:2,x:180,y:60, val:5, type:"supply"},
+  {id:3,x:180,y:320,val:3, type:"supply"},
+  {id:4,x:480,y:60, val:-3,type:"demand"},
+  {id:5,x:340,y:190,val:2, type:"supply"},
+  {id:6,x:480,y:320,val:-5,type:"demand"},
+  {id:7,x:590,y:190,val:6, type:"supply"},
+];
+// [from, to, cost]
+const arcs=[
+  [1,2,20],[1,5,25],[2,5,30],[2,7,45],
+  [3,1,20],[3,6,35],
+  [4,2,30],
+  [5,3,25],[5,4,15],[5,6,28],
+  [6,7,12],
+  [7,4,27],
+];
+// Optimal: x31=8, x25=8, x42=3, x53=5, x56=5, x74=6
+const OPT=[
+  [3,1,8],[2,5,8],[4,2,3],[5,3,5],[5,6,5],[7,4,6]
+];
+function isOpt(f,t){return OPT.some(o=>o[0]===f&&o[1]===t);}
+function optAmt(f,t){const r=OPT.find(o=>o[0]===f&&o[1]===t);return r?r[2]:0;}
+
+const svg=document.getElementById("S");
+function ns(t){return document.createElementNS("http://www.w3.org/2000/svg",t);}
+function gn(id){return nodes.find(n=>n.id===id);}
+function mid(a,b,off){const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;if(!off)return{x:mx,y:my};const dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy);return{x:mx+(-dy/l)*off,y:my+(dx/l)*off};}
+
+function draw(mode){
+  svg.innerHTML="";
+  const isAnim=mode==="animate",isOp=mode==="optimal";
+
+  // Draw arcs
+  arcs.forEach(([f,t,c],i)=>{
+    const n1=gn(f),n2=gn(t),g=ns("g");
+    const hp=isOp&&isOpt(f,t),dim=isOp&&!hp;
+
+    // Check for reverse arc for offset
+    const hasRev=arcs.some(a=>a[0]===t&&a[1]===f);
+    const off=hasRev?14:0;
+
+    const dx=n2.x-n1.x,dy=n2.y-n1.y,l=Math.hypot(dx,dy);
+    const ux=dx/l,uy=dy/l,px=-uy,py=ux;
+
+    // Offset start/end points
+    const sx=n1.x+px*off*0.5,sy=n1.y+py*off*0.5;
+    const ex=n2.x+px*off*0.5,ey=n2.y+py*off*0.5;
+
+    // Use quadratic curve for offset arcs
+    const mx2=(sx+ex)/2+px*off,my2=(sy+ey)/2+py*off;
+
+    const path=ns("path");
+    if(off){path.setAttribute("d",`M${sx},${sy} Q${mx2},${my2} ${ex},${ey}`);}
+    else{path.setAttribute("d",`M${n1.x},${n1.y} L${n2.x},${n2.y}`);}
+    path.setAttribute("fill","none");
+    path.setAttribute("stroke",hp?"var(--green)":"#3a4a6c");
+    path.setAttribute("stroke-width",hp?"4":"2");
+    if(dim)path.setAttribute("opacity","0.15");
+    if(hp)path.style.animation="pulseGlow 1.5s ease infinite";
+    if(isAnim){path.setAttribute("stroke-dasharray","1000");path.setAttribute("stroke-dashoffset","1000");path.style.animation=`drawArc 0.6s ${i*100}ms ease forwards`;}
+    g.appendChild(path);
+
+    // Arrowhead
+    const arSz=6;
+    // For curved paths, compute arrow at endpoint
+    const adx=ex-mx2,ady=ey-my2;
+    const al=Math.hypot(adx,ady);
+    const aux=adx/al,auy=ady/al;
+    const tipX=ex-aux*22,tipY=ey-auy*22;
+    if(!off){
+      // straight line arrow
+      const tipX2=n2.x-ux*22,tipY2=n2.y-uy*22;
+      const arrow=ns("polygon");
+      arrow.setAttribute("points",`${n2.x-ux*18},${n2.y-uy*18} ${tipX2-px*arSz},${tipY2-py*arSz} ${tipX2+px*arSz},${tipY2+py*arSz}`);
+      arrow.setAttribute("fill",hp?"var(--green)":"#3a4a6c");
+      if(dim)arrow.setAttribute("opacity","0.15");
+      g.appendChild(arrow);
+    } else {
+      const apx=-auy,apy=aux;
+      const arrow=ns("polygon");
+      arrow.setAttribute("points",`${ex-aux*18},${ey-auy*18} ${tipX-apx*arSz},${tipY-apy*arSz} ${tipX+apx*arSz},${tipY+apy*arSz}`);
+      arrow.setAttribute("fill",hp?"var(--green)":"#3a4a6c");
+      if(dim)arrow.setAttribute("opacity","0.15");
+      g.appendChild(arrow);
+    }
+
+    // Cost label
+    const lm=off?{x:mx2+(px>0?8:-8),y:my2+(py>0?8:-8)}:mid(n1,n2,14);
+    const ct=ns("text");
+    ct.setAttribute("x",lm.x);ct.setAttribute("y",lm.y);
+    ct.setAttribute("text-anchor","middle");ct.setAttribute("dominant-baseline","central");
+    ct.setAttribute("font-family","'JetBrains Mono',monospace");
+    ct.setAttribute("font-size",hp?"14":"12");ct.setAttribute("font-weight",hp?"700":"400");
+    ct.setAttribute("fill",hp?"var(--green)":"#8892a8");
+    if(dim)ct.setAttribute("opacity","0.15");
+    if(hp){const a=optAmt(f,t);ct.textContent=`$${c}×${a}`;}
+    else ct.textContent=`$${c}`;
+    if(isAnim){ct.setAttribute("opacity","0");ct.style.animation=`fadeUp 0.4s ${i*100+500}ms ease forwards`;}
+    g.appendChild(ct);
+
+    // Flow dots
+    if(hp){
+      const dot=ns("circle");dot.setAttribute("r","4");dot.setAttribute("fill","var(--green)");dot.style.filter="drop-shadow(0 0 5px var(--green))";
+      const am=ns("animateMotion");am.setAttribute("dur","2s");am.setAttribute("repeatCount","indefinite");
+      if(off){am.setAttribute("path",`M${sx},${sy} Q${mx2},${my2} ${ex},${ey}`);}
+      else{am.setAttribute("path",`M${n1.x},${n1.y} L${n2.x},${n2.y}`);}
+      dot.appendChild(am);g.appendChild(dot);
+    }
+    svg.appendChild(g);
+  });
+
+  // Draw nodes
+  nodes.forEach((n,i)=>{
+    const g=ns("g");
+    const circle=ns("circle");
+    circle.setAttribute("cx",n.x);circle.setAttribute("cy",n.y);circle.setAttribute("r","22");circle.setAttribute("stroke-width","2.5");
+    if(n.type==="supply"){circle.setAttribute("fill","rgba(96,165,250,0.15)");circle.setAttribute("stroke","var(--accent)");}
+    else{circle.setAttribute("fill","rgba(248,113,113,0.15)");circle.setAttribute("stroke","var(--red)");}
+    g.appendChild(circle);
+    const lb=ns("text");lb.setAttribute("x",n.x);lb.setAttribute("y",n.y);lb.setAttribute("text-anchor","middle");lb.setAttribute("dominant-baseline","central");
+    lb.setAttribute("fill","white");lb.setAttribute("font-size","15");lb.setAttribute("font-weight","700");lb.setAttribute("font-family","'Noto Sans TC',sans-serif");lb.textContent=n.id;g.appendChild(lb);
+    // Supply/demand tag
+    const tagX=n.id===7?n.x+30:(n.id===1?n.x-30:(n.x<300?n.x:n.x+30));
+    const tagY=n.val>0?(n.y-28):(n.y-28);
+    const tag=ns("text");tag.setAttribute("x",tagX);tag.setAttribute("y",tagY);
+    tag.setAttribute("text-anchor","middle");tag.setAttribute("dominant-baseline","central");
+    tag.setAttribute("font-family","'JetBrains Mono',monospace");tag.setAttribute("font-size","13");tag.setAttribute("font-weight","700");
+    if(n.val>0){tag.setAttribute("fill","var(--accent)");tag.textContent=`+${n.val}`;}
+    else{tag.setAttribute("fill","var(--red)");tag.textContent=`${n.val}`;}
+    if(isAnim){tag.setAttribute("opacity","0");tag.style.animation=`fadeUp 0.4s ${i*150+1200}ms ease forwards`;}
+    g.appendChild(tag);
+    if(isAnim){g.setAttribute("opacity","0");g.style.animation=`nodeIn 0.5s ${i*150}ms ease forwards`;}
+    svg.appendChild(g);
+  });
+
+  // Legend
+  const lg=ns("g");
+  const items=[["rgba(96,165,250,0.5)","var(--accent)","供給（+）",20],["rgba(248,113,113,0.3)","var(--red)","需求（−）",160]];
+  items.forEach(([fill,stroke,text,lx])=>{
+    const c=ns("circle");c.setAttribute("cx",lx);c.setAttribute("cy",370);c.setAttribute("r","5");c.setAttribute("fill",fill);c.setAttribute("stroke",stroke);c.setAttribute("stroke-width","1.5");lg.appendChild(c);
+    const t=ns("text");t.setAttribute("x",lx+12);t.setAttribute("y",370);t.setAttribute("dominant-baseline","central");t.setAttribute("fill","var(--dim)");t.setAttribute("font-size","11");t.setAttribute("font-family","'Noto Sans TC',sans-serif");t.textContent=text;lg.appendChild(t);
+  });
+  svg.appendChild(lg);
+}
+
+function typed(el,lines,base=0,gap=300){lines.forEach((h,i)=>{const d=document.createElement("div");d.classList.add("tl");d.innerHTML=h;el.appendChild(d);setTimeout(()=>{d.classList.add("on");rl(d);},base+i*gap);});}
+function rl(el){if(typeof renderMathInElement==="function")renderMathInElement(el,{delimiters:[{left:"$$",right:"$$",display:true},{left:"\\(",right:"\\)",display:false}],throwOnError:false});}
+
+const STEPS=[
+  // 0: 題目
+  {svg:()=>draw("animate"),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="STEP 1 — 題目說明";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">某<strong>租車公司</strong>在 7 個地點的車輛供需不平衡，需要調配車輛。</p>`,
+      `<p class="ex" style="margin-top:8px"><span style="color:var(--accent)">藍色節點（+）</span>= 車輛過剩（供給）<br><span style="color:var(--red)">紅色節點（−）</span>= 車輛不足（需求）</p>`,
+      `<div class="mb" style="font-size:13px">
+        <p><strong>供給：</strong>地點2（+5）、地點3（+3）、地點5（+2）、地點7（+6）</p>
+        <p>　　　總供給 = 5+3+2+6 = <strong>16</strong></p>
+        <p><strong>需求：</strong>地點1（−8）、地點4（−3）、地點6（−5）</p>
+        <p>　　　總需求 = 8+3+5 = <strong>16</strong></p>
+      </div>`,
+      `<p class="ex"><span class="gn">供需平衡 ✓</span>　弧上數字 = 運送一輛車的成本（美元）</p>`,
+    ],200,400);
+  }},
+  // 1: LP 模型
+  {svg:()=>draw("static"),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="(a) STEP 2 — LP 模型";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">令 \\(x_{ij}\\) = 從地點 \\(i\\) 運送到地點 \\(j\\) 的車輛數</p>`,
+      `<div class="mb" style="font-size:12px">
+$$\\min Z = 20x_{12} + 25x_{15} + 30x_{25} + 45x_{27}$$
+$$+ 20x_{31} + 35x_{36}$$
+$$+ 30x_{42}$$
+$$+ 25x_{53} + 15x_{54} + 28x_{56}$$
+$$+ 12x_{67}$$
+$$+ 27x_{74}$$
+      </div>`,
+      `<p class="ex" style="font-size:13px;margin-top:4px"><strong>12 條弧 = 12 個決策變數</strong></p>`,
+    ],200,500);
+  }},
+  // 2: 限制式
+  {svg:()=>draw("static"),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="STEP 3 — 限制式";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">每個節點：<strong>流出 − 流入 = 供需值</strong></p>`,
+      `<div class="mb" style="font-size:12px;line-height:2.2">
+        <p><span style="color:var(--red)">節點1（−8）</span>：\\(x_{12}+x_{15} - x_{31} = -8\\)</p>
+        <p><span style="color:var(--accent)">節點2（+5）</span>：\\(x_{25}+x_{27} - x_{12} - x_{42} = 5\\)</p>
+        <p><span style="color:var(--accent)">節點3（+3）</span>：\\(x_{31}+x_{36} - x_{53} = 3\\)</p>
+        <p><span style="color:var(--red)">節點4（−3）</span>：\\(x_{42} - x_{54} - x_{74} = -3\\)</p>
+        <p><span style="color:var(--accent)">節點5（+2）</span>：\\(x_{53}+x_{54}+x_{56} - x_{15} - x_{25} = 2\\)</p>
+        <p><span style="color:var(--red)">節點6（−5）</span>：\\(x_{67} - x_{36} - x_{56} = -5\\)</p>
+        <p><span style="color:var(--accent)">節點7（+6）</span>：\\(x_{74} - x_{27} - x_{67} = 6\\)</p>
+        <br>
+        <p>\\(x_{ij} \\geq 0\\) 且為整數</p>
+      </div>`,
+    ],200,500);
+  }},
+  // 3: 最佳解
+  {svg:()=>draw("optimal"),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="(b) STEP 4 — 最佳解";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">使用 LP 工具求解：</p>`,
+      `<div class="mb">
+        <p style="color:var(--green);font-weight:700">\\(x_{31} = 8\\)　地點3 → 地點1　運 8 輛</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{25} = 8\\)　地點2 → 地點5　運 8 輛</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{42} = 3\\)　地點4 → 地點2　運 3 輛</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{53} = 5\\)　地點5 → 地點3　運 5 輛</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{56} = 5\\)　地點5 → 地點6　運 5 輛</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{74} = 6\\)　地點7 → 地點4　運 6 輛</p>
+        <br><p>其餘 \\(x_{ij} = 0\\)</p>
+      </div>`,
+    ],200,350);
+  }},
+  // 4: 結論
+  {svg:()=>draw("optimal"),text:el=>{
+    el.innerHTML="";const t=document.createElement("div");t.className="st";t.textContent="STEP 5 — 結論";el.appendChild(t);
+    typed(el,[
+      `<table class="ta"><tr><th>路線</th><th>車輛數</th><th>單位成本</th><th>小計</th></tr>
+       <tr><td>3→1</td><td class="gc">8</td><td>$20</td><td class="gc">$160</td></tr>
+       <tr><td>2→5</td><td class="gc">8</td><td>$30</td><td class="gc">$240</td></tr>
+       <tr><td>4→2</td><td class="gc">3</td><td>$30</td><td class="gc">$90</td></tr>
+       <tr><td>5→3</td><td class="gc">5</td><td>$25</td><td class="gc">$125</td></tr>
+       <tr><td>5→6</td><td class="gc">5</td><td>$28</td><td class="gc">$140</td></tr>
+       <tr><td>7→4</td><td class="gc">6</td><td>$27</td><td class="gc">$162</td></tr>
+       <tr style="font-weight:700"><td>合計</td><td></td><td></td><td class="gc">$917</td></tr></table>`,
+    ],100);
+    const b=document.createElement("div");b.className="rb";b.id="rb1";
+    b.innerHTML=`<p style="font-size:16px;text-align:center">最低車輛調配成本 \\(Z^* = \\$\\textbf{917}\\)</p>`;
+    el.appendChild(b);rl(b);
+    setTimeout(()=>document.getElementById("rb1")?.classList.add("on"),800);
+    const n=document.createElement("p");n.style.cssText="margin-top:14px;font-size:13px;color:var(--dim);line-height:1.8";
+    n.innerHTML=`<strong>調配邏輯解讀：</strong><br>
+    ・地點3（+3）供給3輛，但從5→3收到5輛，共有8輛送往地點1<br>
+    ・地點2（+5）供給5輛，加上4→2的3輛，共8輛全送往地點5<br>
+    ・地點5是轉運樞紐：收入 8 輛（從2），送出 5+5=10 輛（到3和6），本身供給2輛<br>
+    ・地點7（+6）供給6輛直接送往地點4`;
+    el.appendChild(n);
+  }},
+];
+
+let cur=0;
+function render(){document.getElementById("pills").innerHTML=STEPS.map((_,i)=>`<div class="pill ${i<cur?'done':''} ${i===cur?'on':''}"></div>`).join("");document.getElementById("sN").textContent=`${cur+1} / ${STEPS.length}`;document.getElementById("bP").disabled=cur===0;document.getElementById("bN").disabled=cur===STEPS.length-1;STEPS[cur].svg();STEPS[cur].text(document.getElementById("T"));}
+function go(d){const n=cur+d;if(n>=0&&n<STEPS.length){cur=n;render();}}
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();go(1);}if(e.key==="ArrowLeft"){e.preventDefault();go(-1);}});
+render();
+</script>
+</body>
+</html>

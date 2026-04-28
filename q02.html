@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第2題 運輸問題 — 動畫解題</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg:#0a0e1a;--card:#131a2e;--border:#1e2d4a;--text:#e2e8f0;--dim:#5a6a8a;--accent:#60a5fa;--green:#34d399;--yellow:#fbbf24;--pink:#f472b6;--orange:#fb923c;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);}
+.top-bar h1{font-size:16px;color:var(--accent);font-weight:700;}
+.pills{display:flex;gap:6px;}.pill{width:32px;height:6px;border-radius:3px;background:var(--border);transition:all .4s;}.pill.on{background:var(--accent);width:48px;}.pill.done{background:var(--green);}
+.main{flex:1;display:grid;grid-template-columns:50% 50%;overflow:hidden;}
+.svg-box{display:flex;align-items:center;justify-content:center;padding:20px;}
+.txt-box{padding:28px 24px;overflow-y:auto;border-left:1px solid var(--border);}
+.controls{display:flex;align-items:center;justify-content:center;gap:16px;padding:16px;background:var(--card);border-top:1px solid var(--border);}
+.btn{font-family:'Noto Sans TC',sans-serif;font-size:15px;font-weight:600;padding:10px 32px;border:none;border-radius:8px;cursor:pointer;transition:all .2s;}
+.bp{background:var(--border);color:var(--text);}.bp:hover:not(:disabled){background:#2a3a5c;}
+.bn{background:var(--accent);color:#0a0e1a;}.bn:hover:not(:disabled){background:#93c5fd;}
+.btn:disabled{opacity:.25;cursor:not-allowed;}
+.sn{color:var(--dim);font-size:14px;font-weight:500;min-width:60px;text-align:center;}
+@keyframes nodeIn{0%{opacity:0;transform:scale(.3)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+@keyframes drawArc{to{stroke-dashoffset:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseGlow{0%,100%{filter:drop-shadow(0 0 4px var(--green));stroke-width:4}50%{filter:drop-shadow(0 0 12px var(--green));stroke-width:5}}
+@keyframes typeLine{to{opacity:1;transform:translateX(0)}}
+@keyframes boxPop{0%{opacity:0;transform:scale(.95)}70%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+.tl{opacity:0;transform:translateX(-12px);}.tl.on{animation:typeLine .4s ease forwards;}
+.st{font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.ex{font-size:15px;line-height:1.9;}.ex strong{color:var(--accent);}.ex .pk{color:var(--pink);font-weight:700;}.ex .gn{color:var(--green);font-weight:700;}.ex .yw{color:var(--yellow);font-weight:700;}.ex .og{color:var(--orange);font-weight:700;}
+.mb{font-size:14px;background:rgba(96,165,250,.06);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin:12px 0;line-height:2.4;overflow-x:auto;}
+.rb{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:16px;margin:12px 0;opacity:0;transform:scale(.95);}.rb.on{animation:boxPop .5s ease forwards;}
+.ta{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;}
+.ta th{background:rgba(96,165,250,.12);color:var(--accent);font-weight:600;padding:8px 12px;border:1px solid var(--border);}
+.ta td{padding:8px 12px;border:1px solid var(--border);text-align:center;}
+.ta .gc{background:rgba(52,211,153,.12);color:var(--green);font-weight:700;}
+.katex{font-size:1em !important;}
+</style>
+</head>
+<body>
+<div class="top-bar"><h1>CH8 第2題｜運輸問題</h1><div class="pills" id="pills"></div></div>
+<div class="main"><div class="svg-box"><svg id="S" viewBox="0 0 580 360" width="100%"></svg></div><div class="txt-box" id="T"></div></div>
+<div class="controls"><button class="btn bp" id="bP" onclick="go(-1)">← 上一步</button><span class="sn" id="sN"></span><button class="btn bn" id="bN" onclick="go(1)">下一步 →</button></div>
+<script>
+// Origins (supply nodes)
+const origins=[
+  {id:"O1",label:"Jefferson City",short:"JC",x:80,y:120,supply:30},
+  {id:"O2",label:"Omaha",short:"OM",x:80,y:260,supply:20}
+];
+// Destinations (demand nodes)
+const dests=[
+  {id:"D1",label:"Des Moines",short:"DM",x:480,y:60,demand:25},
+  {id:"D2",label:"Kansas City",short:"KC",x:480,y:180,demand:15},
+  {id:"D3",label:"St. Louis",short:"SL",x:480,y:300,demand:10}
+];
+// Arcs [originIdx, destIdx, cost]
+const arcs=[[0,0,14],[0,1,9],[0,2,7],[1,0,8],[1,1,10],[1,2,5]];
+// Optimal solution [originIdx, destIdx, amount]
+const OPT=[[0,0,5],[0,1,15],[0,2,10],[1,0,20]];
+function isOpt(oi,di){return OPT.some(o=>o[0]===oi&&o[1]===di);}
+function optAmt(oi,di){const r=OPT.find(o=>o[0]===oi&&o[1]===di);return r?r[2]:0;}
+
+const svg=document.getElementById("S");
+function ns(t){return document.createElementNS("http://www.w3.org/2000/svg",t);}
+
+function draw(mode){
+  svg.innerHTML="";
+  const isAnim=mode==="animate",isOp=mode==="optimal";
+  // Arcs
+  arcs.forEach(([oi,di,c],idx)=>{
+    const o=origins[oi],d=dests[di];
+    const g=ns("g");
+    const hp=isOp&&isOpt(oi,di);
+    const dim=isOp&&!hp;
+    const line=ns("line");
+    line.setAttribute("x1",o.x+50);line.setAttribute("y1",o.y);
+    line.setAttribute("x2",d.x-50);line.setAttribute("y2",d.y);
+    line.setAttribute("fill","none");
+    if(hp){line.setAttribute("stroke","var(--green)");line.setAttribute("stroke-width","4");line.style.animation="pulseGlow 1.5s ease infinite";}
+    else{line.setAttribute("stroke","#3a4a6c");line.setAttribute("stroke-width","2");}
+    if(dim)line.setAttribute("opacity","0.15");
+    if(isAnim){line.setAttribute("stroke-dasharray","1000");line.setAttribute("stroke-dashoffset","1000");line.style.animation=`drawArc 0.6s ${idx*120}ms ease forwards`;}
+    g.appendChild(line);
+    // Cost label
+    const mx=(o.x+50+d.x-50)/2,my=(o.y+d.y)/2;
+    const offY=[-14,0,14][di]+(oi===1?6:-6);
+    const ct=ns("text");ct.setAttribute("x",mx);ct.setAttribute("y",my+offY);
+    ct.setAttribute("text-anchor","middle");ct.setAttribute("dominant-baseline","central");
+    ct.setAttribute("font-family","'JetBrains Mono',monospace");
+    ct.setAttribute("font-size",hp?"15":"12");ct.setAttribute("font-weight",hp?"700":"400");
+    ct.setAttribute("fill",hp?"var(--green)":"#8892a8");
+    if(dim)ct.setAttribute("opacity","0.15");
+    if(hp){ct.textContent=`$${c} × ${optAmt(oi,di)} = $${c*optAmt(oi,di)}`;}
+    else if(isOp){ct.textContent=`$${c}`;}
+    else{ct.textContent=`$${c}`;}
+    if(isAnim){ct.setAttribute("opacity","0");ct.style.animation=`fadeUp 0.4s ${idx*120+400}ms ease forwards`;}
+    g.appendChild(ct);
+    // Flow dot
+    if(hp){
+      const dot=ns("circle");dot.setAttribute("r","4");dot.setAttribute("fill","var(--green)");dot.style.filter="drop-shadow(0 0 5px var(--green))";
+      const am=ns("animateMotion");am.setAttribute("dur","2s");am.setAttribute("repeatCount","indefinite");
+      am.setAttribute("path",`M${o.x+50},${o.y} L${d.x-50},${d.y}`);dot.appendChild(am);g.appendChild(dot);
+    }
+    svg.appendChild(g);
+  });
+  // Origin nodes
+  origins.forEach((o,i)=>{
+    const g=ns("g");
+    const rect=ns("rect");rect.setAttribute("x",o.x-50);rect.setAttribute("y",o.y-22);rect.setAttribute("width",100);rect.setAttribute("height",44);rect.setAttribute("rx",8);
+    rect.setAttribute("fill","var(--accent)");rect.setAttribute("opacity","0.9");g.appendChild(rect);
+    const t1=ns("text");t1.setAttribute("x",o.x);t1.setAttribute("y",o.y-4);t1.setAttribute("text-anchor","middle");t1.setAttribute("fill","white");t1.setAttribute("font-size","13");t1.setAttribute("font-weight","700");t1.setAttribute("font-family","'Noto Sans TC',sans-serif");t1.textContent=o.label;g.appendChild(t1);
+    const t2=ns("text");t2.setAttribute("x",o.x);t2.setAttribute("y",o.y+14);t2.setAttribute("text-anchor","middle");t2.setAttribute("fill","rgba(255,255,255,0.7)");t2.setAttribute("font-size","11");t2.setAttribute("font-family","'JetBrains Mono',monospace");t2.textContent=`供給 = ${o.supply}`;g.appendChild(t2);
+    if(isAnim){g.setAttribute("opacity","0");g.style.animation=`nodeIn 0.5s ${i*200}ms ease forwards`;}
+    svg.appendChild(g);
+  });
+  // Dest nodes
+  dests.forEach((d,i)=>{
+    const g=ns("g");
+    const rect=ns("rect");rect.setAttribute("x",d.x-50);rect.setAttribute("y",d.y-22);rect.setAttribute("width",100);rect.setAttribute("height",44);rect.setAttribute("rx",8);
+    rect.setAttribute("fill","var(--orange)");rect.setAttribute("opacity","0.9");g.appendChild(rect);
+    const t1=ns("text");t1.setAttribute("x",d.x);t1.setAttribute("y",d.y-4);t1.setAttribute("text-anchor","middle");t1.setAttribute("fill","white");t1.setAttribute("font-size","13");t1.setAttribute("font-weight","700");t1.setAttribute("font-family","'Noto Sans TC',sans-serif");t1.textContent=d.label;g.appendChild(t1);
+    const t2=ns("text");t2.setAttribute("x",d.x);t2.setAttribute("y",d.y+14);t2.setAttribute("text-anchor","middle");t2.setAttribute("fill","rgba(255,255,255,0.7)");t2.setAttribute("font-size","11");t2.setAttribute("font-family","'JetBrains Mono',monospace");t2.textContent=`需求 = ${d.demand}`;g.appendChild(t2);
+    if(isAnim){g.setAttribute("opacity","0");g.style.animation=`nodeIn 0.5s ${(i+2)*200}ms ease forwards`;}
+    svg.appendChild(g);
+  });
+}
+
+function typed(el,lines,base=0,gap=300){
+  lines.forEach((h,i)=>{const d=document.createElement("div");d.classList.add("tl");d.innerHTML=h;el.appendChild(d);setTimeout(()=>{d.classList.add("on");rl(d);},base+i*gap);});
+}
+function rl(el){if(typeof renderMathInElement==="function")renderMathInElement(el,{delimiters:[{left:"$$",right:"$$",display:true},{left:"\\(",right:"\\)",display:false}],throwOnError:false});}
+
+const STEPS=[
+  {svg:()=>draw("animate"),text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 1 — 題目說明";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">這是一個<strong>運輸問題</strong>，有 2 個起點、3 個終點。</p>`,
+      `<p class="ex" style="margin-top:8px"><span style="color:var(--accent)">■</span> 起點：Jefferson City（供給 30）、Omaha（供給 20）</p>`,
+      `<p class="ex"><span style="color:var(--orange)">■</span> 終點：Des Moines（需求 25）、Kansas City（需求 15）、St. Louis（需求 10）</p>`,
+      `<p class="ex" style="margin-top:8px">弧上數字 = <strong>單位運輸成本（美元）</strong></p>`,
+      `<p class="ex" style="margin-top:8px">總供給 = 50 ＞ 總需求 = 50 → <span class="gn">供需平衡</span></p>`,
+    ],200,400);
+  }},
+  {svg:()=>draw("static"),text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 2 — 定義變數";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">令 \\(x_{ij}\\) = 從起點 \\(i\\) 運送到終點 \\(j\\) 的數量</p>`,
+      `<div class="mb">
+        <p>\\(x_{11}\\)：Jefferson City → Des Moines</p>
+        <p>\\(x_{12}\\)：Jefferson City → Kansas City</p>
+        <p>\\(x_{13}\\)：Jefferson City → St. Louis</p>
+        <p>\\(x_{21}\\)：Omaha → Des Moines</p>
+        <p>\\(x_{22}\\)：Omaha → Kansas City</p>
+        <p>\\(x_{23}\\)：Omaha → St. Louis</p>
+      </div>`,
+    ],200,400);
+  }},
+  {svg:()=>draw("static"),text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 3 — 目標函數";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">目標：<span class="pk">最小化總運輸成本</span></p>`,
+      `<div class="mb">
+$$\\min Z = 14x_{11} + 9x_{12} + 7x_{13} + 8x_{21} + 10x_{22} + 5x_{23}$$
+      </div>`,
+      `<p class="ex">每一項 = 單位運輸成本 × 運送數量</p>`,
+    ],200,500);
+  }},
+  {svg:()=>draw("static"),text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 4 — 限制式";el.appendChild(t);
+    typed(el,[
+      `<p class="ex"><strong>供給限制式</strong>（起點流出量 ≤ 供給量）：</p>`,
+      `<div class="mb">
+        <p>\\(x_{11} + x_{12} + x_{13} \\leq 30\\)　（Jefferson City）</p>
+        <p>\\(x_{21} + x_{22} + x_{23} \\leq 20\\)　（Omaha）</p>
+      </div>`,
+      `<p class="ex"><strong>需求限制式</strong>（終點流入量 = 需求量）：</p>`,
+      `<div class="mb">
+        <p>\\(x_{11} + x_{21} = 25\\)　（Des Moines）</p>
+        <p>\\(x_{12} + x_{22} = 15\\)　（Kansas City）</p>
+        <p>\\(x_{13} + x_{23} = 10\\)　（St. Louis）</p>
+      </div>`,
+      `<p class="ex">非負限制：\\(x_{ij} \\geq 0\\)　對所有 \\(i, j\\)</p>`,
+    ],200,350);
+  }},
+  {svg:()=>draw("optimal"),text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 5 — 最佳解";el.appendChild(t);
+    typed(el,[
+      `<p class="ex">使用 LP 工具求解：</p>`,
+      `<div class="mb">
+        <p style="color:var(--green);font-weight:700">\\(x_{11} = 5\\)　JC → DM　成本 \\(14 \\times 5 = 70\\)</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{12} = 15\\)　JC → KC　成本 \\(9 \\times 15 = 135\\)</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{13} = 10\\)　JC → SL　成本 \\(7 \\times 10 = 70\\)</p>
+        <p style="color:var(--green);font-weight:700">\\(x_{21} = 20\\)　OM → DM　成本 \\(8 \\times 20 = 160\\)</p>
+        <br>
+        <p>\\(x_{22} = 0\\)，\\(x_{23} = 0\\)</p>
+      </div>`,
+    ],200,400);
+  }},
+  {svg:()=>draw("optimal"),text:el=>{
+    el.innerHTML="";
+    const t=document.createElement("div");t.className="st";t.textContent="STEP 6 — 結論";el.appendChild(t);
+    typed(el,[
+      `<table class="ta"><tr><th>路線</th><th>運量</th><th>單位成本</th><th>小計</th></tr>
+       <tr><td>JC → DM</td><td class="gc">5</td><td>$14</td><td class="gc">$70</td></tr>
+       <tr><td>JC → KC</td><td class="gc">15</td><td>$9</td><td class="gc">$135</td></tr>
+       <tr><td>JC → SL</td><td class="gc">10</td><td>$7</td><td class="gc">$70</td></tr>
+       <tr><td>OM → DM</td><td class="gc">20</td><td>$8</td><td class="gc">$160</td></tr>
+       <tr style="font-weight:700"><td>合計</td><td>50</td><td></td><td class="gc">$435</td></tr></table>`,
+    ],100);
+    const b=document.createElement("div");b.className="rb";b.id="rb1";
+    b.innerHTML=`<p style="font-size:16px;text-align:center">最低總運輸成本 \\(Z^* = \\$\\textbf{435}\\)</p>`;
+    el.appendChild(b);rl(b);
+    setTimeout(()=>document.getElementById("rb1")?.classList.add("on"),800);
+    const n=document.createElement("p");n.style.cssText="margin-top:14px;font-size:13px;color:var(--dim);line-height:1.7";
+    n.innerHTML="Jefferson City 的供給量 30 全部用完（<strong>binding</strong>）<br>Omaha 的供給量 20 全部用完（binding）<br>沒有剩餘供給量。";
+    el.appendChild(n);
+  }}
+];
+
+let cur=0;
+function render(){document.getElementById("pills").innerHTML=STEPS.map((_,i)=>`<div class="pill ${i<cur?'done':''} ${i===cur?'on':''}"></div>`).join("");document.getElementById("sN").textContent=`${cur+1} / ${STEPS.length}`;document.getElementById("bP").disabled=cur===0;document.getElementById("bN").disabled=cur===STEPS.length-1;STEPS[cur].svg();STEPS[cur].text(document.getElementById("T"));}
+function go(d){const n=cur+d;if(n>=0&&n<STEPS.length){cur=n;render();}}
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key===" "){e.preventDefault();go(1);}if(e.key==="ArrowLeft"){e.preventDefault();go(-1);}});
+render();
+</script>
+</body>
+</html>
