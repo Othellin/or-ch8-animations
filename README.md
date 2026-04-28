@@ -5,7 +5,7 @@
 
 ## 線上瀏覽
 
-👉 **https://你的帳號.github.io/or-ch8-animations/**
+👉 **https://othelin.github.io/or-ch8-animations/**
 
 ## 內容
 
